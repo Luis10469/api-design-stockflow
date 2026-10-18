@@ -28,10 +28,10 @@ El núcleo del diseño es la **trazabilidad**: el stock de un producto nunca se 
 
 | Nombre | Rol | GitHub |
 |--------|-----|--------|
-| Luis Alejandro Quiros | Líder / Arquitecto de Software | [@Luis10469](https://github.com/Luis10469) |
+| Brayan Morales | Líder / Arquitecto de Software | [@Luis10469](https://github.com/Luis10469) |
 | Jhon Vasquez | Analista de Datos | _por confirmar_ |
 | Hemery Perez | Diseñador de API | _por confirmar_ |
-| Brayan Morales | Documentación y QA | _por confirmar_ |
+| Luis Alejandro Quiros | Documentación y QA | _por confirmar_ |
 
 ## 🏗️ Modelo de Datos (Entidades)
 El sistema se compone de las siguientes 4 entidades principales y sus relaciones:
