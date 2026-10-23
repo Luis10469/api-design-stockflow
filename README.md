@@ -182,7 +182,6 @@ Base URL propuesta: `http://localhost:3000/api/v1`
 
 ## 🔗 Enlaces
 * **Repositorio GitHub:** [https://github.com/Luis10469/api-design-stockflow](https://github.com/Luis10469/api-design-stockflow)
-* **Video de Presentación:** _Pendiente_
-
+* **Video de Presentación:** https://drive.google.com/file/d/1l61wwK7GHJ7K4jYNGbfmbWXlk56YrsuW/view?usp=sharing 
 ---
 **⚠️ Nota:** Este repositorio contiene solo la documentación y diseño. No incluye código fuente de la aplicación.
