@@ -1,7 +1,9 @@
 # 🚀 StockFlow API
 
-![Status](https://img.shields.io/badge/Status-Planning-blue)
+![Status](https://img.shields.io/badge/Status-En%20desarrollo-yellow)
 ![Version](https://img.shields.io/badge/Version-1.0.0-green)
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-SQLModel-009688)
 
 ## 📖 Descripción del Proyecto
 
@@ -22,16 +24,16 @@ El núcleo del diseño es la **trazabilidad**: el stock de un producto nunca se 
 **Dominio:** Gestión de Inventarios y Cadena de Suministros.
 
 ## 🎥 Video de Presentación
-* 🎬 **Enlace al video de presentación (Máx. 5 minutos):** _Pendiente: se agrega aquí cuando el equipo publique el video._
+* 🎬 **Enlace al video de presentación (Máx. 5 minutos):** https://drive.google.com/file/d/1l61wwK7GHJ7K4jYNGbfmbWXlk56YrsuW/view?usp=sharing
 
 ## 👥 Equipo de Desarrollo
 
 | Nombre | Rol | GitHub |
 |--------|-----|--------|
 | Brayan Morales | Líder / Arquitecto de Software | [@Luis10469](https://github.com/Luis10469) |
-| Jhon Vasquez | Analista de Datos | _por confirmar_ |
-| Hemery Perez | Diseñador de API | _por confirmar_ |
-| Luis Alejandro Quiros | Documentación y QA | _por confirmar_ |
+| Jhon Vasquez | Analista de Datos | [@JhonV26](https://github.com/JhonV26) |
+| Hemery Perez | Diseñador de API | [@HemeryDev](https://github.com/HemeryDev) |
+| Luis Alejandro Quiros | Documentación y QA | [@Alejandro-18zapata](https://github.com/Alejandro-18zapata) |
 
 ## 🏗️ Modelo de Datos (Entidades)
 El sistema se compone de las siguientes 4 entidades principales y sus relaciones:
@@ -100,7 +102,7 @@ erDiagram
 ## 🔌 Documentación de Endpoints (API Design)
 A continuación se detallan los endpoints diseñados bajo estándares RESTful: sustantivos en plural, kebab-case para nombres compuestos (`movimientos-stock`), métodos HTTP según la acción y versionado en la URL.
 
-Base URL propuesta: `http://localhost:3000/api/v1`
+Base URL: `http://localhost:8000/api/v1` (servidor local con Uvicorn; el prefijo `/api/v1` sale de la variable `API_V1_STR`).
 
 ### 1. Recurso: Categoria (`/categorias`)
 
@@ -166,22 +168,92 @@ Base URL propuesta: `http://localhost:3000/api/v1`
 | 405 Method Not Allowed | Intento de editar o borrar un movimiento. |
 | 409 Conflict | SKU o nombre repetido, stock insuficiente o eliminación de un registro con dependencias. |
 
-## 🛠️ Stack Tecnológico Propuesto
-* **Lenguaje:** Node.js
-* **Framework:** Express
-* **Base de Datos:** PostgreSQL
-* **Autenticación:** JWT
+## 🛠️ Stack Tecnológico
+
+| Componente | Tecnología |
+|------------|------------|
+| Lenguaje | Python 3.10 o superior |
+| Framework | FastAPI |
+| ORM y DTOs | SQLModel (SQLAlchemy + Pydantic) |
+| Base de datos | SQLite en local (`aiosqlite`) y PostgreSQL en Neon (`asyncpg`) |
+| Servidor | Uvicorn |
+| Configuración | `pydantic-settings` con archivo `.env` |
+| Documentación de la API | OpenAPI (Swagger UI en `/docs`) |
+| Autenticación | JWT (fase posterior) |
+
+## 🏛️ Arquitectura del Proyecto
+
+El código sigue una arquitectura modular por capas:
+
+```text
+api-design-stockflow/
+├── app/
+│   ├── __init__.py
+│   ├── core/          # Configuración global, variables de entorno y conexión a la base de datos
+│   ├── models/        # Modelos SQLModel: tablas y DTOs (Create, Update, Public)
+│   ├── services/      # Lógica de negocio y operaciones CRUD
+│   ├── api/           # Endpoints REST
+│   └── main.py        # Punto de entrada de la aplicación FastAPI
+├── .env.example       # Plantilla de variables de entorno (sin credenciales reales)
+├── .gitignore
+├── requirements.txt   # Dependencias del proyecto
+└── README.md
+```
+
+| Capa | Responsabilidad |
+|------|-----------------|
+| `app/core/` | Lee el `.env`, define la configuración global y crea el motor asíncrono y las sesiones de base de datos. |
+| `app/models/` | Define cada entidad una sola vez: la tabla (`table=True`) y sus DTOs de entrada y salida. |
+| `app/services/` | Implementa las reglas de negocio y las consultas sobre la base de datos. |
+| `app/api/` | Expone los endpoints REST y valida las peticiones. |
+| `app/main.py` | Crea la aplicación, inicializa la base de datos al arrancar y registra las rutas. |
+
+## ⚙️ Instalación y Ejecución Local
+
+```powershell
+# 1. Clonar el repositorio
+git clone https://github.com/Luis10469/api-design-stockflow.git
+cd api-design-stockflow
+
+# 2. Crear y activar el entorno virtual
+python -m venv venv
+.\venv\Scripts\Activate.ps1        # Windows (PowerShell)
+# source venv/bin/activate         # Linux / macOS
+
+# 3. Instalar las dependencias
+pip install -r requirements.txt
+
+# 4. Crear el archivo de variables de entorno a partir de la plantilla
+Copy-Item .env.example .env        # Windows (PowerShell)
+# cp .env.example .env             # Linux / macOS
+
+# 5. Iniciar el servidor
+uvicorn app.main:app --reload
+```
+
+La documentación interactiva queda en `http://localhost:8000/docs`.
+
+> El archivo `.env` y la carpeta `venv/` nunca se suben al repositorio.
+
+## 🌿 Flujo de Trabajo con Git
+
+* Cada tarea se desarrolla en su propia rama: `feature/p<paso>-<tarea>` (por ejemplo, `feature/p2-config`).
+* Al terminar, se abre un Pull Request hacia `main`; el líder lo revisa y lo integra.
+* Los commits siguen **Conventional Commits** en español: `tipo(alcance): descripción` (por ejemplo, `feat(core): configurar settings con pydantic-settings`).
 
 ## 📅 Roadmap / Próximos Pasos
-1. Configurar entorno de desarrollo.
-2. Crear migraciones de base de datos basadas en el ER.
-3. Implementar controladores para los endpoints GET.
-4. Implementar los endpoints POST, PATCH y DELETE con sus validaciones y reglas de negocio.
-5. Registrar cada movimiento y actualizar `stock_actual` dentro de una misma transacción.
-6. Agregar autenticación con JWT y documentar la API con OpenAPI (Swagger).
+
+- [x] Diseño de la API y del modelo de datos.
+- [x] Esqueleto del proyecto y arquitectura modular.
+- [ ] Capa `core`: configuración y conexión a la base de datos.
+- [ ] Modelos y DTOs de Categoria, Proveedor, Producto y Movimiento_Stock con SQLModel.
+- [ ] Servicios y endpoints REST con sus validaciones y reglas de negocio.
+- [ ] Registro de movimientos y actualización de `stock_actual` en una misma transacción.
+- [ ] Autenticación con JWT.
 
 ## 🔗 Enlaces
 * **Repositorio GitHub:** [https://github.com/Luis10469/api-design-stockflow](https://github.com/Luis10469/api-design-stockflow)
-* **Video de Presentación:** https://drive.google.com/file/d/1l61wwK7GHJ7K4jYNGbfmbWXlk56YrsuW/view?usp=sharing 
+* **Video de Presentación:** https://drive.google.com/file/d/1l61wwK7GHJ7K4jYNGbfmbWXlk56YrsuW/view?usp=sharing
+
 ---
-**⚠️ Nota:** Este repositorio contiene solo la documentación y diseño. No incluye código fuente de la aplicación.
+**⚠️ Nota:** Este repositorio contiene el diseño de la API y su implementación con FastAPI y SQLModel, que se construye por etapas.
