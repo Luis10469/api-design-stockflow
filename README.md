@@ -253,7 +253,7 @@ La documentación interactiva queda en `http://localhost:8000/docs`.
 
 ## 🔗 Enlaces
 * **Repositorio GitHub:** [https://github.com/Luis10469/api-design-stockflow](https://github.com/Luis10469/api-design-stockflow)
-* **Video de Presentación:** https://drive.google.com/file/d/1l61wwK7GHJ7K4jYNGbfmbWXlk56YrsuW/view?usp=sharing
+* **Video de Presentación:** (https://drive.google.com/file/d/1pT_Vcr7h4VDcQwpeAxLJ-yydPRAAEl5Y/view?usp=sharing)
 
 ---
 **⚠️ Nota:** Este repositorio contiene el diseño de la API y su implementación con FastAPI y SQLModel, que se construye por etapas.
