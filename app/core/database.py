@@ -5,7 +5,7 @@ from sqlmodel import SQLModel
 
 from app.core.config import settings
 
-# 1. Motor asíncrono con la URL configurada en settings
+# 1. Motor asíncrono con la URL configurada por Jhon
 engine = create_async_engine(
     str(settings.DATABASE_URL),
     echo=False,
@@ -26,7 +26,7 @@ async def init_db() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
 
-# 4. Inyector de dependencias para los endpoints de FastAPI
+# 4. Inyector de dependencias para FastAPI
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     async with async_session_maker() as session:
         yield session
