@@ -6,25 +6,25 @@ from sqlmodel import SQLModel
 
 from app.core.config import settings
 
-# Argumentos de conexión especiales (Neon / SSL)
+# Conexión especial para Neon (requiere SSL)
 connect_args = {}
 if "neon.tech" in str(settings.DATABASE_URL):
     connect_args = {"ssl": True}
 
-# Motor asíncrono
+# Motor asíncrono configurado según la guía
 engine = create_async_engine(
     str(settings.DATABASE_URL),
     echo=settings.ECHO_SQL,
     pool_pre_ping=True,
     connect_args=connect_args,
+    future=True,
 )
 
-# Fábrica de sesiones asíncronas
+# Fábrica de sesiones asíncronas (sin autocommit innecesario)
 async_session_maker = sessionmaker(
     bind=engine,
     class_=AsyncSession,
     expire_on_commit=False,
-    autocommit=False,
     autoflush=False,
 )
 
@@ -36,7 +36,7 @@ async def init_db() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
 
-# Dependencia para inyectar en FastAPI
+# Dependencia para inyectar la sesión en FastAPI
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     async with async_session_maker() as session:
         yield session
