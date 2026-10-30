@@ -1,11 +1,11 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.core.config import settings
-from app.core.database import create_db_and_tables
+from app.db.database import init_db
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await create_db_and_tables()
+    await init_db()
     yield
 
 app = FastAPI(
@@ -13,7 +13,3 @@ app = FastAPI(
     version=settings.VERSION,
     lifespan=lifespan
 )
-
-@app.get("/")
-async def root():
-    return {"message": f"{settings.PROJECT_NAME} API running"}
