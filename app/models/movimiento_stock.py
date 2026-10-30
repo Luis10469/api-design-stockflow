@@ -21,3 +21,17 @@ class MovimientoStock(MovimientoStockBase, table=True):
         default_factory=lambda: datetime.now(timezone.utc),
         nullable=False,
     )
+
+
+# 3. DTO de Entrada (POST)
+class MovimientoStockCreate(MovimientoStockBase):
+    pass
+
+
+# Sin DTO de Edición: los movimientos son inmutables, no se editan (README)
+
+
+# 4. DTO de Respuesta (GET)
+class MovimientoStockPublic(MovimientoStockBase):
+    id_movimiento: int
+    fecha: datetime
