@@ -12,27 +12,23 @@ class ProveedorBase(SQLModel):
     nombre: str = Field(
         max_length=150,
         index=True,
-        description="Nombre o razón social del proveedor (máximo 150 letras)",
+        description="Nombre o razón social del proveedor",
     )
-    telefono: str | None = Field(
-        default=None,
+    telefono: str = Field(
         max_length=20,
-        description="Teléfono de contacto del proveedor",
+        description="Teléfono de contacto del proveedor (obligatorio)",
     )
     correo: EmailStr = Field(
-        unique=True,
         index=True,
-        description="Correo electrónico válido (rechazado por el sistema si el formato es inválido)",
+        description="Correo electrónico válido del proveedor",
     )
-    direccion: str | None = Field(
-        default=None,
+    direccion: str = Field(
         max_length=255,
-        description="Dirección física del proveedor",
+        description="Dirección física del proveedor (obligatorio)",
     )
-    origen: str | None = Field(
-        default=None,
+    origen: str = Field(
         max_length=100,
-        description="Lugar o país de origen del proveedor",
+        description="Lugar o país de origen del proveedor (obligatorio)",
     )
 
 
@@ -44,7 +40,7 @@ class Proveedor(ProveedorBase, table=True):
 
     __tablename__ = "proveedores"
 
-    id: int | None = Field(default=None, primary_key=True)
+    id_proveedor: int | None = Field(default=None, primary_key=True)
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         nullable=False,
@@ -77,6 +73,6 @@ class ProveedorUpdate(SQLModel):
 class ProveedorPublic(ProveedorBase):
     """Schema de respuesta pública para la API (GET / Response)."""
 
-    id: int
+    id_proveedor: int
     created_at: datetime
     updated_at: datetime
