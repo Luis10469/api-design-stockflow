@@ -1,30 +1,31 @@
 from datetime import datetime, timezone
 
-from sqlmodel import Field, Relationship, SQLModel
-
-
-def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+from sqlmodel import Field, SQLModel
 
 
 class ProductoBase(SQLModel):
     sku: str = Field(max_length=50, unique=True, index=True)
-    nombre: str = Field(max_length=150)
+    nombre: str = Field(max_length=150, index=True)
     precio: float = Field(gt=0)
     costo: float = Field(ge=0)
     stock_minimo: int = Field(default=0, ge=0)
-    id_categoria: int = Field(foreign_key="categoria.id_categoria")
-    id_proveedor: int = Field(foreign_key="proveedor.id_proveedor")
+    id_categoria: int = Field(foreign_key="categorias.id_categoria")
+    id_proveedor: int = Field(foreign_key="proveedores.id_proveedor")
 
 
 class Producto(ProductoBase, table=True):
+    __tablename__ = "productos"
+
     id_producto: int | None = Field(default=None, primary_key=True)
     stock_actual: int = Field(default=0, ge=0)
-    created_at: datetime = Field(default_factory=_utcnow)
-    updated_at: datetime = Field(default_factory=_utcnow)
-
-    categoria: "Categoria" = Relationship(back_populates="productos")
-    proveedor: "Proveedor" = Relationship(back_populates="productos")
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
 
 
 class ProductoCreate(ProductoBase):
