@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from sqlmodel import SQLModel, Field
 
@@ -7,10 +7,10 @@ class CategoriaBase(SQLModel):
     descripcion: Optional[str] = Field(default=None, max_length=255)
 
 class Categoria(CategoriaBase, table=True):
-    __tablename__ = "categoria"
+    __tablename__ = "categorias"  # ANTES decía "categoria" y Producto la busca como "categorias"
     id_categoria: Optional[int] = Field(default=None, primary_key=True)
-    fecha_creacion: datetime = Field(default_factory=datetime.utcnow, nullable=False)
-    fecha_actualizacion: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), nullable=False)
 
 class CategoriaCreate(CategoriaBase):
     pass
@@ -21,5 +21,5 @@ class CategoriaUpdate(SQLModel):
 
 class CategoriaPublic(CategoriaBase):
     id_categoria: int
-    fecha_creacion: datetime
-    fecha_actualizacion: datetime
+    created_at: datetime
+    updated_at: datetime
