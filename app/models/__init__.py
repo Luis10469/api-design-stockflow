@@ -1,3 +1,4 @@
+from .categoria import Categoria, CategoriaCreate, CategoriaUpdate, CategoriaPublic
 from app.models.proveedor import (
     Proveedor,
     ProveedorBase,
@@ -7,6 +8,10 @@ from app.models.proveedor import (
 )
 
 __all__ = [
+    "Categoria",
+    "CategoriaCreate",
+    "CategoriaUpdate",
+    "CategoriaPublic",
     "Proveedor",
     "ProveedorBase",
     "ProveedorCreate",
