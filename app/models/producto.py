@@ -1,6 +1,10 @@
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
+
+if TYPE_CHECKING:
+    from app.models.movimiento_stock import MovimientoStock
 
 
 class ProductoBase(SQLModel):
@@ -26,6 +30,9 @@ class Producto(ProductoBase, table=True):
         default_factory=lambda: datetime.now(timezone.utc),
         nullable=False,
     )
+
+    # Lado "1": un producto registra muchos movimientos
+    movimientos: list["MovimientoStock"] = Relationship(back_populates="producto")
 
 
 class ProductoCreate(ProductoBase):

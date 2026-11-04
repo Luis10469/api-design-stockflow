@@ -1,6 +1,10 @@
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING, Optional
 
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
+
+if TYPE_CHECKING:
+    from app.models.producto import Producto
 
 
 # 1. Base Común
@@ -21,6 +25,9 @@ class MovimientoStock(MovimientoStockBase, table=True):
         default_factory=lambda: datetime.now(timezone.utc),
         nullable=False,
     )
+
+    # Lado "muchos": cada movimiento afecta a un solo producto
+    producto: Optional["Producto"] = Relationship(back_populates="movimientos")
 
 
 # 3. DTO de Entrada (POST)
