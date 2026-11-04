@@ -4,6 +4,7 @@ from sqlmodel import Field, SQLModel, Relationship
 
 if TYPE_CHECKING:
     from app.models.categoria import Categoria
+    from app.models.movimiento_stock import MovimientoStock
     from app.models.proveedor import Proveedor
 
 class ProductoBase(SQLModel):
@@ -30,6 +31,7 @@ class Producto(ProductoBase, table=True):
     )
     categoria: Optional["Categoria"] = Relationship(back_populates="productos")
     proveedor: Optional["Proveedor"] = Relationship(back_populates="productos")
+    movimientos: list["MovimientoStock"] = Relationship(back_populates="producto")
 
 class ProductoCreate(ProductoBase):
     pass
