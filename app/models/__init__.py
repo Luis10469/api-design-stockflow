@@ -13,6 +13,12 @@ from app.models.proveedor import (
     ProveedorPublic,
     ProveedorUpdate,
 )
+from app.models.movimiento_stock import (
+    MovimientoStock,
+    MovimientoStockBase,
+    MovimientoStockCreate,
+    MovimientoStockPublic,
+)
 
 __all__ = [
     "Categoria",
@@ -29,4 +35,8 @@ __all__ = [
     "ProveedorCreate",
     "ProveedorUpdate",
     "ProveedorPublic",
+    "MovimientoStock",
+    "MovimientoStockBase",
+    "MovimientoStockCreate",
+    "MovimientoStockPublic",
 ]
