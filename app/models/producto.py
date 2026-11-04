@@ -1,5 +1,9 @@
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING, Optional
 from sqlmodel import Field, SQLModel, Relationship
+
+if TYPE_CHECKING:
+    from app.models.categoria import Categoria
 
 class ProductoBase(SQLModel):
     sku: str = Field(max_length=50, unique=True, index=True)
@@ -23,7 +27,7 @@ class Producto(ProductoBase, table=True):
         default_factory=lambda: datetime.now(timezone.utc),
         nullable=False,
     )
-    categoria: "Categoria" = Relationship(back_populates="productos")
+    categoria: Optional["Categoria"] = Relationship(back_populates="productos")
 
 class ProductoCreate(ProductoBase):
     pass
