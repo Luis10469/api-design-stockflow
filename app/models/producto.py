@@ -4,6 +4,7 @@ from sqlmodel import Field, SQLModel, Relationship
 
 if TYPE_CHECKING:
     from app.models.categoria import Categoria
+    from app.models.proveedor import Proveedor
 
 class ProductoBase(SQLModel):
     sku: str = Field(max_length=50, unique=True, index=True)
@@ -28,6 +29,7 @@ class Producto(ProductoBase, table=True):
         nullable=False,
     )
     categoria: Optional["Categoria"] = Relationship(back_populates="productos")
+    proveedor: Optional["Proveedor"] = Relationship(back_populates="productos")
 
 class ProductoCreate(ProductoBase):
     pass

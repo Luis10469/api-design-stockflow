@@ -1,6 +1,10 @@
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 from pydantic import EmailStr
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
+
+if TYPE_CHECKING:
+    from app.models.producto import Producto
 
 
 # ==========================================
@@ -49,6 +53,7 @@ class Proveedor(ProveedorBase, table=True):
         default_factory=lambda: datetime.now(timezone.utc),
         nullable=False,
     )
+    productos: list["Producto"] = Relationship(back_populates="proveedor")
 
 
 # ==========================================
