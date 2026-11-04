@@ -1,7 +1,9 @@
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING, Optional
+from sqlmodel import Field, SQLModel, Relationship
 
-from sqlmodel import Field, SQLModel
-
+if TYPE_CHECKING:
+    from app.models.categoria import Categoria
 
 class ProductoBase(SQLModel):
     sku: str = Field(max_length=50, unique=True, index=True)
@@ -11,7 +13,6 @@ class ProductoBase(SQLModel):
     stock_minimo: int = Field(default=0, ge=0)
     id_categoria: int = Field(foreign_key="categorias.id_categoria")
     id_proveedor: int = Field(foreign_key="proveedores.id_proveedor")
-
 
 class Producto(ProductoBase, table=True):
     __tablename__ = "productos"
@@ -26,11 +27,10 @@ class Producto(ProductoBase, table=True):
         default_factory=lambda: datetime.now(timezone.utc),
         nullable=False,
     )
-
+    categoria: Optional["Categoria"] = Relationship(back_populates="productos")
 
 class ProductoCreate(ProductoBase):
     pass
-
 
 class ProductoUpdate(SQLModel):
     sku: str | None = Field(default=None, max_length=50)
@@ -40,7 +40,6 @@ class ProductoUpdate(SQLModel):
     stock_minimo: int | None = Field(default=None, ge=0)
     id_categoria: int | None = None
     id_proveedor: int | None = None
-
 
 class ProductoPublic(ProductoBase):
     id_producto: int
