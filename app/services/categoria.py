@@ -1,5 +1,6 @@
 from fastapi import HTTPException
 
+from app.models.categoria import CategoriaCreate, CategoriaUpdate
 from app.repositories.categoria import CategoriaRepository
 from app.repositories.producto import ProductoRepository
 
@@ -21,26 +22,25 @@ class CategoriaService:
     async def list_paginated(self, skip: int = 0, limit: int = 10):
         return await self.categoria_repo.list_paginated(skip=skip, limit=limit)
 
-    async def create(self, data: dict):
-        nombre = data.get("nombre")
-        if nombre:
-            existente = await self.categoria_repo.get_by_nombre(nombre)
-            if existente:
-                raise HTTPException(status_code=409, detail="El nombre de la categoria ya existe")
-        return await self.categoria_repo.create(data)
+    async def create(self, data: CategoriaCreate):
+        existente = await self.categoria_repo.get_by_nombre(data.nombre)
+        if existente:
+            raise HTTPException(status_code=409, detail="El nombre de la categoria ya existe")
+        return await self.categoria_repo.create(data.model_dump())
 
-    async def update(self, categoria_id: int, data: dict):
+    async def update(self, categoria_id: int, data: CategoriaUpdate):
         categoria = await self.categoria_repo.get_by_id(categoria_id)
         if not categoria:
             raise HTTPException(status_code=404, detail="Categoria no encontrada")
 
-        nombre = data.get("nombre")
+        cambios = data.model_dump(exclude_unset=True)
+        nombre = cambios.get("nombre")
         if nombre and nombre != categoria.nombre:
             existente = await self.categoria_repo.get_by_nombre(nombre)
             if existente:
                 raise HTTPException(status_code=409, detail="El nombre de la categoria ya existe")
 
-        return await self.categoria_repo.update(categoria_id, data)
+        return await self.categoria_repo.update(categoria_id, cambios)
 
     async def delete(self, categoria_id: int):
         categoria = await self.categoria_repo.get_by_id(categoria_id)
