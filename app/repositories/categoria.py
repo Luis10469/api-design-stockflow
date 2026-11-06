@@ -1,4 +1,3 @@
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.categoria import Categoria
@@ -9,7 +8,7 @@ class CategoriaRepository:
 
     async def get_by_id(self, categoria_id: int):
         result = await self.db.execute(
-            select(Categoria).where(Categoria.id == categoria_id)
+            select(Categoria).where(Categoria.id_categoria == categoria_id)
         )
         return result.scalars().first()
 
