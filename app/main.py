@@ -253,11 +253,20 @@ app = FastAPI(
 
 
 @app.get(
-    "/test-repositorios",
+    "/health",
+    tags=["Salud"],
+    summary="Verificar el estado del servicio",
+)
+async def health_check() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+@app.post(
+    "/test-repositories",
     tags=["Pruebas"],
     summary="T-23: Prueba integral de la capa de repositorios",
 )
-async def endpoint_test_repositorios(
+async def endpoint_test_repositories(
     session: AsyncSession = Depends(get_session),
 ):
     """Ejecuta la prueba de los 4 repositorios (Categoría, Proveedor, Producto, MovimientoStock).
