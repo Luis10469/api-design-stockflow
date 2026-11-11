@@ -8,12 +8,19 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import async_session_maker, get_session, init_db
 from app.models.movimiento_stock import MovimientoStockCreate
+from app.models.categoria import CategoriaCreate
+from app.services import (
+    CategoriaService,
+    ProveedorService,
+    ProductoService,
+    MovimientoStockService,
+)
 from app.models.producto import ProductoCreate, ProductoUpdate
 from app.models.proveedor import ProveedorCreate, ProveedorUpdate
 from app.repositories import (
@@ -239,6 +246,187 @@ async def probar_repositorios(session: AsyncSession) -> dict:
     }
 
 
+
+
+async def probar_servicios(session: AsyncSession) -> dict:
+    """T-29: Prueba integral de la capa de servicios."""
+
+    repo_cat = CategoriaRepository(session)
+    repo_prov = ProveedorRepository(session)
+    repo_prod = ProductoRepository(session)
+    repo_mov = MovimientoStockRepository(session)
+
+    servicio_cat = CategoriaService(repo_cat, repo_prod)
+    servicio_prov = ProveedorService(repo_prov, repo_prod)
+    servicio_prod = ProductoService(
+        repo_prod, repo_cat, repo_prov, repo_mov
+    )
+    servicio_mov = MovimientoStockService(repo_mov, repo_prod)
+
+    sufijo = uuid.uuid4().hex[:6].upper()
+
+    print(f"\n========== T-29 SERVICIOS ({sufijo}) ==========")
+
+    # PRUEBA 1: CREACIÓN COORDINADA
+    categoria = await servicio_cat.create(
+        CategoriaCreate(
+            nombre=f"Categoria-T29-{sufijo}",
+            descripcion="Prueba T-29",
+        )
+    )
+
+    proveedor = await servicio_prov.create(
+        ProveedorCreate(
+            nombre=f"Proveedor-T29-{sufijo}",
+            telefono="3001234567",
+            correo=f"t29-{sufijo.lower()}@test.com",
+            direccion="Calle de prueba",
+            origen="Medellín",
+        )
+    )
+
+    producto = await servicio_prod.create(
+        ProductoCreate(
+            sku=f"T29-{sufijo}",
+            nombre=f"Producto-T29-{sufijo}",
+            precio=50000.0,
+            costo=30000.0,
+            stock_minimo=5,
+            id_categoria=categoria.id_categoria,
+            id_proveedor=proveedor.id_proveedor,
+        )
+    )
+
+    movimiento = await servicio_mov.create(
+        MovimientoStockCreate(
+            id_producto=producto.id_producto,
+            tipo="ENTRADA",
+            cantidad=10,
+            motivo="Entrada inicial T-29",
+        )
+    )
+
+    producto = await servicio_prod.get_by_id(producto.id_producto)
+
+    assert producto.stock_actual == 10, "La entrada no actualizó el stock"
+    print("[OK] PRUEBA 1: Creación coordinada y entrada de stock")
+
+    # PRUEBA 2: CATEGORÍA DUPLICADA
+    try:
+        await servicio_cat.create(
+            CategoriaCreate(
+                nombre=f"Categoria-T29-{sufijo}",
+                descripcion="Duplicada",
+            )
+        )
+        raise AssertionError("Se permitió una categoría duplicada")
+    except HTTPException as exc:
+        assert exc.status_code == 409, f"Se esperaba 409, llegó {exc.status_code}"
+        print("[OK] PRUEBA 2: Categoría duplicada = 409")
+
+    # PRUEBA 3: SKU DUPLICADO
+    try:
+        await servicio_prod.create(
+            ProductoCreate(
+                sku=f"T29-{sufijo}",
+                nombre=f"Duplicado-{sufijo}",
+                precio=60000.0,
+                costo=35000.0,
+                stock_minimo=5,
+                id_categoria=categoria.id_categoria,
+                id_proveedor=proveedor.id_proveedor,
+            )
+        )
+        raise AssertionError("Se permitió un SKU duplicado")
+    except HTTPException as exc:
+        assert exc.status_code == 409, f"Se esperaba 409, llegó {exc.status_code}"
+        print("[OK] PRUEBA 3: SKU duplicado = 409")
+
+    # PRUEBA 4: SALIDA MAYOR AL STOCK
+    stock_anterior = producto.stock_actual
+
+    try:
+        await servicio_mov.create(
+            MovimientoStockCreate(
+                id_producto=producto.id_producto,
+                tipo="SALIDA",
+                cantidad=stock_anterior + 100,
+                motivo="Salida de prueba sin stock",
+            )
+        )
+        raise AssertionError("Se permitió una salida sin stock")
+    except HTTPException as exc:
+        assert exc.status_code == 409, f"Se esperaba 409, llegó {exc.status_code}"
+
+    producto_despues = await servicio_prod.get_by_id(producto.id_producto)
+
+    assert producto_despues.stock_actual == stock_anterior, (
+        "El stock cambió después de rechazar la salida"
+    )
+    print("[OK] PRUEBA 4: Salida rechazada = 409 y stock intacto")
+
+    # PRUEBA 5: PRODUCTO INEXISTENTE
+    try:
+        await servicio_prod.get_by_id(999999)
+        raise AssertionError("Se encontró un producto inexistente")
+    except HTTPException as exc:
+        assert exc.status_code == 404, f"Se esperaba 404, llegó {exc.status_code}"
+        print("[OK] PRUEBA 5: Producto inexistente = 404")
+
+    # PRUEBA 6A: BORRAR CATEGORÍA VACÍA
+    categoria_vacia = await servicio_cat.create(
+        CategoriaCreate(
+            nombre=f"Categoria-Vacia-{sufijo}",
+            descripcion="Prueba de borrado",
+        )
+    )
+
+    await servicio_cat.delete(categoria_vacia.id_categoria)
+
+    try:
+        await servicio_cat.get_by_id(categoria_vacia.id_categoria)
+        raise AssertionError("La categoría eliminada todavía existe")
+    except HTTPException as exc:
+        assert exc.status_code == 404, f"Se esperaba 404, llegó {exc.status_code}"
+
+    print("[OK] PRUEBA 6A: Categoría eliminada = 404")
+
+    # PRUEBA 6B: NO BORRAR CATEGORÍA CON PRODUCTOS
+    try:
+        await servicio_cat.delete(categoria.id_categoria)
+        raise AssertionError("Se permitió borrar una categoría con productos")
+    except HTTPException as exc:
+        assert exc.status_code == 409, f"Se esperaba 409, llegó {exc.status_code}"
+
+    print("[OK] PRUEBA 6B: Categoría con productos = 409")
+
+    print("\n======================================")
+    print(" T-29 FINALIZADA EXITOSAMENTE")
+    print(" Se completaron las seis pruebas.")
+    print("======================================\n")
+
+    return {
+        "status": "success",
+        "mensaje": "T-29 completada exitosamente",
+        "sufijo": sufijo,
+        "pruebas": {
+            "creacion_coordinada": "OK",
+            "categoria_duplicada_409": "OK",
+            "sku_duplicado_409": "OK",
+            "stock_insuficiente_409": "OK",
+            "producto_inexistente_404": "OK",
+            "eliminacion_categoria_404_409": "OK",
+        },
+        "datos": {
+            "id_categoria": categoria.id_categoria,
+            "id_proveedor": proveedor.id_proveedor,
+            "id_producto": producto.id_producto,
+            "id_movimiento": movimiento.id_movimiento,
+            "stock_final": producto_despues.stock_actual,
+        },
+    }
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
@@ -276,6 +464,18 @@ async def endpoint_test_repositories(
     return await probar_repositorios(session)
 
 
+@app.post(
+    "/test-services",
+    tags=["Pruebas"],
+    summary="T-29: Prueba integral de la capa de servicios",
+)
+async def endpoint_test_services(
+    session: AsyncSession = Depends(get_session),
+):
+    return await probar_servicios(session)
+
+
+
 if __name__ == "__main__":
     import asyncio
 
@@ -283,5 +483,6 @@ if __name__ == "__main__":
         await init_db()
         async with async_session_maker() as session:
             await probar_repositorios(session)
+            await probar_servicios(session)
 
     asyncio.run(main_cli())
