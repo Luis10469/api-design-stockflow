@@ -1,18 +1,24 @@
-"""Router de Productos (Capa 5, tema 13).
+"""Router de Productos (Capa 5, temas 13 y 15).
 
-Expone el CRUD de productos y delega todas las reglas de negocio al
-``ProductoService``, que se inyecta con su alias de ``app.api.deps``.
+Expone el CRUD de productos y el historial de movimientos de cada producto.
+Todas las reglas de negocio se delegan a los servicios, que se inyectan con
+sus alias de ``app.api.deps``.
 """
 
 from fastapi import APIRouter, Query, Response, status
 
-from app.api.deps import ProductoServiceDep
+from app.api.deps import MovimientoStockServiceDep, ProductoServiceDep
+from app.models.movimiento_stock import (
+    MovimientoStockCreate,
+    MovimientoStockCreateDesdeProducto,
+    MovimientoStockPublic,
+)
 from app.models.producto import ProductoCreate, ProductoPublic, ProductoUpdate
 
 router = APIRouter(prefix="/productos", tags=["Productos"])
 
 
-@router.get("", response_model=list[ProductoPublic])
+@router.get("/", response_model=list[ProductoPublic])
 async def listar_productos(
     service: ProductoServiceDep,
     skip: int = Query(0, ge=0),
@@ -38,7 +44,7 @@ async def obtener_producto(id_producto: int, service: ProductoServiceDep):
 
 
 @router.post(
-    "",
+    "/",
     response_model=ProductoPublic,
     status_code=status.HTTP_201_CREATED,
 )
@@ -68,3 +74,35 @@ async def eliminar_producto(
     """Elimina un producto sin movimientos; el servicio responde 404 o 409 si no se puede."""
     await service.delete(id_producto)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get(
+    "/{id_producto}/movimientos-stock",
+    response_model=list[MovimientoStockPublic],
+)
+async def listar_movimientos_del_producto(
+    id_producto: int,
+    service: MovimientoStockServiceDep,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=100),
+):
+    """Devuelve el historial de movimientos de un producto; 404 si no existe."""
+    return await service.list_all(skip=skip, limit=limit, id_producto=id_producto)
+
+
+@router.post(
+    "/{id_producto}/movimientos-stock",
+    response_model=MovimientoStockPublic,
+    status_code=status.HTTP_201_CREATED,
+)
+async def registrar_movimiento_del_producto(
+    id_producto: int,
+    movimiento_in: MovimientoStockCreateDesdeProducto,
+    service: MovimientoStockServiceDep,
+):
+    """Registra un movimiento usando el id_producto de la ruta y actualiza el stock."""
+    movimiento = MovimientoStockCreate(
+        id_producto=id_producto,
+        **movimiento_in.model_dump(),
+    )
+    return await service.create(movimiento)
