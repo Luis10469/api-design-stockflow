@@ -245,10 +245,10 @@ La documentación interactiva queda en `http://localhost:8000/docs`.
 
 - [x] Diseño de la API y del modelo de datos.
 - [x] Esqueleto del proyecto y arquitectura modular.
-- [ ] Capa `core`: configuración y conexión a la base de datos.
-- [ ] Modelos y DTOs de Categoria, Proveedor, Producto y Movimiento_Stock con SQLModel.
-- [ ] Servicios y endpoints REST con sus validaciones y reglas de negocio.
-- [ ] Registro de movimientos y actualización de `stock_actual` en una misma transacción.
+- [x] Capa `core`: configuración y conexión a la base de datos.
+- [x] Modelos y DTOs de Categoria, Proveedor, Producto y Movimiento_Stock con SQLModel.
+- [x] Servicios y endpoints REST con sus validaciones y reglas de negocio.
+- [x] Registro de movimientos y actualización de `stock_actual` en una misma transacción.
 - [ ] Autenticación con JWT.
 
 ## 🔗 Enlaces
