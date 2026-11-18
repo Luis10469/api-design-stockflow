@@ -18,7 +18,7 @@ from app.models.producto import ProductoCreate, ProductoPublic, ProductoUpdate
 router = APIRouter(prefix="/productos", tags=["Productos"])
 
 
-@router.get("", response_model=list[ProductoPublic])
+@router.get("/", response_model=list[ProductoPublic])
 async def listar_productos(
     service: ProductoServiceDep,
     skip: int = Query(0, ge=0),
@@ -44,7 +44,7 @@ async def obtener_producto(id_producto: int, service: ProductoServiceDep):
 
 
 @router.post(
-    "",
+    "/",
     response_model=ProductoPublic,
     status_code=status.HTTP_201_CREATED,
 )
