@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import async_session_maker, get_session, init_db
+from app.routers import api_router
 from app.models.movimiento_stock import MovimientoStockCreate
 from app.models.categoria import CategoriaCreate
 from app.services import (
@@ -438,6 +439,9 @@ app = FastAPI(
     version=settings.VERSION,
     lifespan=lifespan,
 )
+
+# T-36: Incluir el router central con el prefijo /api/v1
+app.include_router(api_router, prefix=settings.API_V1_STR)
 
 
 @app.get(
