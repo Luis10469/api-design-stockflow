@@ -17,6 +17,7 @@ from app.models.movimiento_stock import (
     MovimientoStock,
     MovimientoStockBase,
     MovimientoStockCreate,
+    MovimientoStockCreateDesdeProducto,
     MovimientoStockPublic,
 )
 
@@ -38,5 +39,6 @@ __all__ = [
     "MovimientoStock",
     "MovimientoStockBase",
     "MovimientoStockCreate",
+    "MovimientoStockCreateDesdeProducto",
     "MovimientoStockPublic",
 ]
