@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, time, timezone
 
 from fastapi import HTTPException, status
 
@@ -8,6 +8,21 @@ from app.repositories.movimiento_stock import MovimientoStockRepository
 from app.repositories.producto import ProductoRepository
 
 TIPOS_VALIDOS = ("ENTRADA", "SALIDA", "AJUSTE")
+
+
+def _a_utc(valor: date | datetime | None, fin_del_dia: bool = False) -> datetime | None:
+    """Convierte el filtro de fecha en un datetime con zona UTC (la base lo exige).
+
+    - Solo fecha (ej. 2026-10-31): inicio del día, o final del día si es "hasta".
+    - Fecha y hora sin zona: se toma como UTC.
+    """
+    if valor is None:
+        return None
+    if not isinstance(valor, datetime):
+        valor = datetime.combine(valor, time.max if fin_del_dia else time.min)
+    if valor.tzinfo is None:
+        valor = valor.replace(tzinfo=timezone.utc)
+    return valor
 
 
 class MovimientoStockService:
@@ -61,10 +76,11 @@ class MovimientoStockService:
         limit: int = 100,
         id_producto: int | None = None,
         tipo: str | None = None,
-        desde: datetime | None = None,
-        hasta: datetime | None = None,
+        desde: date | datetime | None = None,
+        hasta: date | datetime | None = None,
     ) -> list[MovimientoStock]:
-        """Lista paginada con filtros. Si llega un producto, tiene que existir (404)."""
+        """Lista paginada con filtros. Si llega un producto, tiene que existir (404).
+        Las fechas sin hora cubren el día completo (desde = inicio, hasta = final)."""
         if id_producto is not None:
             await self._get_producto(id_producto)
         if tipo is not None:
@@ -74,8 +90,8 @@ class MovimientoStockService:
             limit=limit,
             id_producto=id_producto,
             tipo=tipo,
-            desde=desde,
-            hasta=hasta,
+            desde=_a_utc(desde),
+            hasta=_a_utc(hasta, fin_del_dia=True),
         )
 
     async def create(self, movimiento_in: MovimientoStockCreate) -> MovimientoStock:

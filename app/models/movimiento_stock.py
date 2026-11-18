@@ -35,6 +35,14 @@ class MovimientoStockCreate(MovimientoStockBase):
     pass
 
 
+# DTO de Entrada desde un producto (POST /productos/{id_producto}/movimientos-stock):
+# el id_producto viene en la ruta, por eso el cuerpo no lo pide
+class MovimientoStockCreateDesdeProducto(SQLModel):
+    tipo: str = Field(description="ENTRADA, SALIDA o AJUSTE")
+    cantidad: int = Field(gt=0)
+    motivo: str
+
+
 # Sin DTO de Edición: los movimientos son inmutables, no se editan (README)
 
 
