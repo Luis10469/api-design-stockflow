@@ -7,3 +7,6 @@ asyncpg>=0.29.0
 greenlet>=3.0.0
 pydantic-settings>=2.0.0
 email-validator>=2.1.0
+
+# Cliente HTTP usado por la prueba de la Capa 5 (T-37) en app/main.py
+httpx>=0.27.0
