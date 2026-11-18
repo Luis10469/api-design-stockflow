@@ -428,6 +428,414 @@ async def probar_servicios(session: AsyncSession) -> dict:
     }
 
 
+async def probar_routers() -> dict:
+    """T-37: Prueba integral de la Capa 5 (routers HTTP).
+
+    Ejercita los cuatro recursos en ``/api/v1`` con ``httpx.ASGITransport``
+    sobre la app real, comprobando los códigos del README (201, 204, 400,
+    404, 405, 409) y las reglas de negocio visibles por HTTP: el stock solo
+    cambia con movimientos y los borrados con dependencias se rechazan.
+    """
+    from httpx import ASGITransport, AsyncClient
+
+    base = settings.API_V1_STR
+    sufijo = uuid.uuid4().hex[:6].upper()
+    pruebas: dict[str, str] = {}
+
+    def verificar(nombre: str, condicion: bool, detalle: str = "") -> None:
+        if not condicion:
+            raise AssertionError(f"{nombre} -> {detalle or 'sin detalle'}")
+        pruebas[nombre] = "OK"
+        print(f"[OK] {nombre}{f' -> {detalle}' if detalle else ''}")
+
+    print(f"\n========== T-37 ROUTERS ({sufijo}) ==========")
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+        follow_redirects=True,
+    ) as cliente:
+
+        async def stock_actual() -> int:
+            respuesta = await cliente.get(f"{base}/productos/{id_producto}")
+            return respuesta.json()["stock_actual"]
+
+        # PRUEBA 1: SALUD
+        r = await cliente.get("/health")
+        verificar("GET /health -> 200", r.status_code == 200, str(r.status_code))
+
+        # PRUEBA 2: CATEGORÍAS
+        r = await cliente.post(
+            f"{base}/categorias/",
+            json={"nombre": f"Cat-T37-{sufijo}", "descripcion": "Prueba T-37"},
+        )
+        verificar("POST /categorias/ -> 201", r.status_code == 201, str(r.status_code))
+        id_categoria = r.json()["id_categoria"]
+
+        r = await cliente.post(
+            f"{base}/categorias/", json={"nombre": f"Cat-T37-{sufijo}"}
+        )
+        verificar(
+            "POST /categorias/ con nombre repetido -> 409",
+            r.status_code == 409,
+            str(r.status_code),
+        )
+
+        r = await cliente.get(f"{base}/categorias/")
+        verificar(
+            "GET /categorias/ -> 200",
+            r.status_code == 200 and isinstance(r.json(), list),
+            str(r.status_code),
+        )
+
+        r = await cliente.get(f"{base}/categorias/{id_categoria}")
+        verificar(
+            "GET /categorias/{id} -> 200", r.status_code == 200, str(r.status_code)
+        )
+
+        r = await cliente.get(f"{base}/categorias/999999")
+        verificar(
+            "GET /categorias/{id} inexistente -> 404",
+            r.status_code == 404,
+            str(r.status_code),
+        )
+
+        r = await cliente.patch(
+            f"{base}/categorias/{id_categoria}", json={"descripcion": "Editada T-37"}
+        )
+        verificar(
+            "PATCH /categorias/{id} -> 200", r.status_code == 200, str(r.status_code)
+        )
+
+        # PRUEBA 3: PROVEEDORES
+        r = await cliente.post(
+            f"{base}/proveedores/",
+            json={
+                "nombre": f"Prov-T37-{sufijo}",
+                "telefono": "3001234567",
+                "correo": f"t37-{sufijo.lower()}@test.com",
+                "direccion": "Calle 10 # 20-30",
+                "origen": "Medellín",
+            },
+        )
+        verificar("POST /proveedores/ -> 201", r.status_code == 201, str(r.status_code))
+        id_proveedor = r.json()["id_proveedor"]
+
+        r = await cliente.get(f"{base}/proveedores/", params={"origen": "Medellín"})
+        verificar(
+            "GET /proveedores/?origen -> 200", r.status_code == 200, str(r.status_code)
+        )
+
+        r = await cliente.patch(
+            f"{base}/proveedores/{id_proveedor}", json={"telefono": "3009876543"}
+        )
+        verificar(
+            "PATCH /proveedores/{id} -> 200", r.status_code == 200, str(r.status_code)
+        )
+
+        # PRUEBA 4: PRODUCTOS
+        producto_in = {
+            "sku": f"T37-{sufijo}",
+            "nombre": f"Prod-T37-{sufijo}",
+            "precio": 45000.0,
+            "costo": 25500.0,
+            "stock_minimo": 3,
+            "id_categoria": id_categoria,
+            "id_proveedor": id_proveedor,
+        }
+        r = await cliente.post(f"{base}/productos/", json=producto_in)
+        verificar(
+            "POST /productos/ -> 201 con stock 0",
+            r.status_code == 201 and r.json()["stock_actual"] == 0,
+            str(r.status_code),
+        )
+        id_producto = r.json()["id_producto"]
+
+        r = await cliente.post(f"{base}/productos/", json=producto_in)
+        verificar(
+            "POST /productos/ con SKU repetido -> 409",
+            r.status_code == 409,
+            str(r.status_code),
+        )
+
+        r = await cliente.get(
+            f"{base}/productos/", params={"id_categoria": id_categoria}
+        )
+        verificar(
+            "GET /productos/?id_categoria -> 200",
+            r.status_code == 200 and len(r.json()) == 1,
+            str(r.status_code),
+        )
+
+        # PRUEBA 5: MOVIMIENTOS Y STOCK
+        r = await cliente.post(
+            f"{base}/movimientos-stock/",
+            json={
+                "id_producto": id_producto,
+                "tipo": "ENTRADA",
+                "cantidad": 10,
+                "motivo": "Entrada T-37",
+            },
+        )
+        verificar(
+            "POST /movimientos-stock/ ENTRADA -> 201",
+            r.status_code == 201,
+            str(r.status_code),
+        )
+        id_movimiento = r.json()["id_movimiento"]
+        verificar(
+            "ENTRADA suma al stock (0 + 10 = 10)",
+            await stock_actual() == 10,
+            str(await stock_actual()),
+        )
+
+        r = await cliente.post(
+            f"{base}/movimientos-stock/",
+            json={
+                "id_producto": id_producto,
+                "tipo": "SALIDA",
+                "cantidad": 4,
+                "motivo": "Venta T-37",
+            },
+        )
+        verificar(
+            "POST movimientos-stock/ SALIDA -> 201 y resta (10 - 4 = 6)",
+            r.status_code == 201 and await stock_actual() == 6,
+            str(r.status_code),
+        )
+
+        r = await cliente.post(
+            f"{base}/movimientos-stock/",
+            json={
+                "id_producto": id_producto,
+                "tipo": "SALIDA",
+                "cantidad": 999,
+                "motivo": "Salida sin stock",
+            },
+        )
+        verificar(
+            "SALIDA mayor al stock -> 409 y stock intacto",
+            r.status_code == 409 and await stock_actual() == 6,
+            str(r.status_code),
+        )
+
+        r = await cliente.post(
+            f"{base}/movimientos-stock/",
+            json={
+                "id_producto": id_producto,
+                "tipo": "AJUSTE",
+                "cantidad": 7,
+                "motivo": "Conteo físico T-37",
+            },
+        )
+        verificar(
+            "POST movimientos-stock/ AJUSTE -> 201 y corrige a 7",
+            r.status_code == 201 and await stock_actual() == 7,
+            str(r.status_code),
+        )
+
+        r = await cliente.post(
+            f"{base}/movimientos-stock/",
+            json={
+                "id_producto": 999999,
+                "tipo": "ENTRADA",
+                "cantidad": 1,
+                "motivo": "Producto inexistente",
+            },
+        )
+        verificar(
+            "POST movimiento de producto inexistente -> 404",
+            r.status_code == 404,
+            str(r.status_code),
+        )
+
+        r = await cliente.post(
+            f"{base}/movimientos-stock/",
+            json={
+                "id_producto": id_producto,
+                "tipo": "TRANSFERENCIA",
+                "cantidad": 1,
+                "motivo": "Tipo inválido",
+            },
+        )
+        verificar(
+            "POST movimiento con tipo inválido -> 400",
+            r.status_code == 400,
+            str(r.status_code),
+        )
+
+        r = await cliente.get(f"{base}/movimientos-stock/", params={"tipo": "SALIDA"})
+        verificar(
+            "GET /movimientos-stock/?tipo=SALIDA -> 200 y solo salidas",
+            r.status_code == 200 and all(m["tipo"] == "SALIDA" for m in r.json()),
+            str(r.status_code),
+        )
+
+        r = await cliente.get(
+            f"{base}/movimientos-stock/",
+            params={
+                "id_producto": id_producto,
+                "desde": "2020-01-01",
+                "hasta": "2030-12-31",
+            },
+        )
+        verificar(
+            "GET /movimientos-stock/ con rango de fechas -> 200",
+            r.status_code == 200 and len(r.json()) == 3,
+            str(r.status_code),
+        )
+
+        r = await cliente.get(f"{base}/movimientos-stock/{id_movimiento}")
+        verificar(
+            "GET /movimientos-stock/{id} -> 200",
+            r.status_code == 200,
+            str(r.status_code),
+        )
+
+        r = await cliente.get(f"{base}/movimientos-stock/999999")
+        verificar(
+            "GET /movimientos-stock/{id} inexistente -> 404",
+            r.status_code == 404,
+            str(r.status_code),
+        )
+
+        r = await cliente.patch(
+            f"{base}/movimientos-stock/{id_movimiento}", json={"motivo": "editado"}
+        )
+        verificar(
+            "PATCH movimiento -> 405 (inmutable)",
+            r.status_code == 405,
+            str(r.status_code),
+        )
+
+        r = await cliente.delete(f"{base}/movimientos-stock/{id_movimiento}")
+        verificar(
+            "DELETE movimiento -> 405 (inmutable)",
+            r.status_code == 405,
+            str(r.status_code),
+        )
+
+        # PRUEBA 6: ENDPOINTS ANIDADOS
+        r = await cliente.get(f"{base}/categorias/{id_categoria}/productos")
+        verificar(
+            "GET /categorias/{id}/productos -> 200 con el producto",
+            r.status_code == 200
+            and [p["id_producto"] for p in r.json()] == [id_producto],
+            str(r.status_code),
+        )
+
+        r = await cliente.get(f"{base}/proveedores/{id_proveedor}/productos")
+        verificar(
+            "GET /proveedores/{id}/productos -> 200 con el producto",
+            r.status_code == 200 and len(r.json()) == 1,
+            str(r.status_code),
+        )
+
+        r = await cliente.get(f"{base}/categorias/999999/productos")
+        verificar(
+            "GET categoría inexistente /productos -> 404",
+            r.status_code == 404,
+            str(r.status_code),
+        )
+
+        # PRUEBA 7: PATCH NO TOCA EL STOCK
+        r = await cliente.patch(
+            f"{base}/productos/{id_producto}", json={"stock_minimo": 10}
+        )
+        verificar(
+            "PATCH /productos/{id} -> 200 y no cambia el stock",
+            r.status_code == 200 and r.json()["stock_actual"] == 7,
+            str(r.status_code),
+        )
+
+        r = await cliente.get(
+            f"{base}/productos/",
+            params={"bajo_stock": "true", "id_categoria": id_categoria},
+        )
+        verificar(
+            "GET /productos/?bajo_stock=true incluye el producto (7 <= 10)",
+            r.status_code == 200 and len(r.json()) == 1,
+            str(r.status_code),
+        )
+
+        # stock_actual no es un campo de ProductoUpdate: se ignora, no se escribe
+        r = await cliente.patch(
+            f"{base}/productos/{id_producto}", json={"stock_actual": 999}
+        )
+        verificar(
+            "PATCH con stock_actual no modifica el stock",
+            r.status_code == 200 and await stock_actual() == 7,
+            str(r.status_code),
+        )
+
+        # PRUEBA 8: BORRADOS PROTEGIDOS
+        r = await cliente.delete(f"{base}/categorias/{id_categoria}")
+        verificar(
+            "DELETE categoría con productos -> 409",
+            r.status_code == 409,
+            str(r.status_code),
+        )
+
+        r = await cliente.delete(f"{base}/proveedores/{id_proveedor}")
+        verificar(
+            "DELETE proveedor con productos -> 409",
+            r.status_code == 409,
+            str(r.status_code),
+        )
+
+        r = await cliente.delete(f"{base}/productos/{id_producto}")
+        verificar(
+            "DELETE producto con movimientos -> 409",
+            r.status_code == 409,
+            str(r.status_code),
+        )
+
+        # PRUEBA 9: BORRADO REAL DE UN PRODUCTO SIN MOVIMIENTOS
+        r = await cliente.post(
+            f"{base}/productos/",
+            json={
+                "sku": f"T37-B-{sufijo}",
+                "nombre": f"Prod-B-T37-{sufijo}",
+                "precio": 1000.0,
+                "costo": 500.0,
+                "stock_minimo": 0,
+                "id_categoria": id_categoria,
+                "id_proveedor": id_proveedor,
+            },
+        )
+        id_producto_b = r.json()["id_producto"]
+
+        r = await cliente.delete(f"{base}/productos/{id_producto_b}")
+        verificar(
+            "DELETE producto sin movimientos -> 204",
+            r.status_code == 204 and r.content == b"",
+            str(r.status_code),
+        )
+
+        r = await cliente.get(f"{base}/productos/{id_producto_b}")
+        verificar(
+            "GET producto borrado -> 404", r.status_code == 404, str(r.status_code)
+        )
+
+    print("\n======================================")
+    print(f" T-37 FINALIZADA EXITOSAMENTE ({len(pruebas)} pruebas)")
+    print("======================================\n")
+
+    return {
+        "status": "success",
+        "mensaje": "T-37 completada exitosamente",
+        "sufijo": sufijo,
+        "pruebas": pruebas,
+        "datos": {
+            "id_categoria": id_categoria,
+            "id_proveedor": id_proveedor,
+            "id_producto": id_producto,
+            "id_movimiento": id_movimiento,
+            "stock_final": 7,
+        },
+    }
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
@@ -479,6 +887,15 @@ async def endpoint_test_services(
     return await probar_servicios(session)
 
 
+@app.post(
+    "/test-routers",
+    tags=["Pruebas"],
+    summary="T-37: Prueba integral de la Capa 5 (routers HTTP)",
+)
+async def endpoint_test_routers():
+    """Recorre los cuatro recursos en /api/v1 y valida códigos y reglas de negocio."""
+    return await probar_routers()
+
 
 if __name__ == "__main__":
     import asyncio
@@ -488,5 +905,6 @@ if __name__ == "__main__":
         async with async_session_maker() as session:
             await probar_repositorios(session)
             await probar_servicios(session)
+            await probar_routers()
 
     asyncio.run(main_cli())
