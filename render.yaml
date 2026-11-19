@@ -1,0 +1,25 @@
+# Despliegue de StockFlow API en Render (Blueprint).
+# Render lee este archivo de la rama main: en Render, New > Blueprint > este repositorio.
+# La base de datos es PostgreSQL en Neon; su cadena de conexión NO va aquí:
+# Render la pide al crear el Blueprint (POSTGRES_URL) y se pega tal como la da Neon.
+services:
+  - type: web
+    name: stockflow-api
+    runtime: python
+    plan: free
+    region: ohio # la misma zona que Neon "AWS US East 2 (Ohio)", para que la base responda rápido
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.10 # la misma versión con la que se probó en local
+      - key: DB_TYPE
+        value: postgres
+      - key: POSTGRES_URL
+        sync: false # secreto: se escribe en Render, nunca en el repositorio
+      - key: ECHO_SQL
+        value: "False"
+      - key: FORWARDED_ALLOW_IPS
+        value: "*" # Uvicorn confía en el proxy de Render: las redirecciones salen con https
