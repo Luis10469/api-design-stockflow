@@ -191,12 +191,15 @@ api-design-stockflow/
 │   ├── __init__.py
 │   ├── core/          # Configuración global, variables de entorno y conexión a la base de datos
 │   ├── models/        # Modelos SQLModel: tablas y DTOs (Create, Update, Public)
-│   ├── services/      # Lógica de negocio y operaciones CRUD
-│   ├── api/           # Endpoints REST
+│   ├── repositories/  # Acceso a datos: consultas CRUD de cada tabla
+│   ├── services/      # Lógica de negocio y reglas de validación
+│   ├── api/           # Dependencias inyectables (deps.py): sesión, repositorios y servicios
+│   ├── routers/       # Endpoints REST de cada recurso, agrupados en api_router
 │   └── main.py        # Punto de entrada de la aplicación FastAPI
 ├── .env.example       # Plantilla de variables de entorno (sin credenciales reales)
 ├── .gitignore
-├── requirements.txt   # Dependencias del proyecto
+├── render.yaml        # Despliegue en Render (Blueprint)
+├── requirements.txt   # Dependencias del proyecto (versiones fijas)
 └── README.md
 ```
 
@@ -204,9 +207,11 @@ api-design-stockflow/
 |------|-----------------|
 | `app/core/` | Lee el `.env`, define la configuración global y crea el motor asíncrono y las sesiones de base de datos. |
 | `app/models/` | Define cada entidad una sola vez: la tabla (`table=True`) y sus DTOs de entrada y salida. |
-| `app/services/` | Implementa las reglas de negocio y las consultas sobre la base de datos. |
-| `app/api/` | Expone los endpoints REST y valida las peticiones. |
-| `app/main.py` | Crea la aplicación, inicializa la base de datos al arrancar y registra las rutas. |
+| `app/repositories/` | Hace las consultas a la base de datos de cada tabla (crear, leer, actualizar, borrar). |
+| `app/services/` | Implementa las reglas de negocio (409 por duplicados, stock insuficiente, dependencias) sobre los repositorios. |
+| `app/api/` | Define las dependencias que FastAPI inyecta en cada ruta (`SessionDep` y un `<X>ServiceDep` por servicio). |
+| `app/routers/` | Expone los endpoints REST de cada recurso y valida las peticiones con los DTOs. |
+| `app/main.py` | Crea la aplicación, inicializa la base de datos al arrancar y registra las rutas bajo `/api/v1`. |
 
 ## ⚙️ Instalación y Ejecución Local
 
@@ -235,6 +240,16 @@ La documentación interactiva queda en `http://localhost:8000/docs`.
 
 > El archivo `.env` y la carpeta `venv/` nunca se suben al repositorio.
 
+## ☁️ Despliegue en Render
+
+La API se despliega en Render con el archivo `render.yaml` y usa PostgreSQL en Neon.
+
+1. En Neon, crear un proyecto en la zona **AWS US East 2 (Ohio)** y copiar la cadena de conexión directa (la que no tiene `-pooler` en el host).
+2. En Render, **New > Blueprint** y elegir este repositorio. Render crea el servicio `stockflow-api` y pide `POSTGRES_URL`: pegar la cadena de Neon tal como la da.
+3. Comprobar `https://<dirección de Render>/health` (responde `{"status":"ok"}`) y `/docs`.
+
+> Cada vez que algo se une a `main`, Render vuelve a desplegar. En el plan gratis el servicio se duerme tras 15 minutos sin uso y la primera petición tarda cerca de un minuto. Los endpoints `/test-repositories`, `/test-services` y `/test-routers` escriben datos de prueba en la base: no se llaman en producción.
+
 ## 🌿 Flujo de Trabajo con Git
 
 * Cada tarea se desarrolla en su propia rama: `feature/p<paso>-<tarea>` (por ejemplo, `feature/p2-config`).
@@ -245,10 +260,11 @@ La documentación interactiva queda en `http://localhost:8000/docs`.
 
 - [x] Diseño de la API y del modelo de datos.
 - [x] Esqueleto del proyecto y arquitectura modular.
-- [ ] Capa `core`: configuración y conexión a la base de datos.
-- [ ] Modelos y DTOs de Categoria, Proveedor, Producto y Movimiento_Stock con SQLModel.
-- [ ] Servicios y endpoints REST con sus validaciones y reglas de negocio.
-- [ ] Registro de movimientos y actualización de `stock_actual` en una misma transacción.
+- [x] Capa `core`: configuración y conexión a la base de datos.
+- [x] Modelos y DTOs de Categoria, Proveedor, Producto y Movimiento_Stock con SQLModel.
+- [x] Servicios y endpoints REST con sus validaciones y reglas de negocio.
+- [x] Registro de movimientos y actualización de `stock_actual` en una misma transacción.
+- [x] Despliegue en Render con PostgreSQL en Neon preparado (`render.yaml`).
 - [ ] Autenticación con JWT.
 
 ## 🔗 Enlaces
