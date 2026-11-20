@@ -196,7 +196,6 @@ api-design-stockflow/
 │   ├── api/           # Dependencias inyectables (deps.py): sesión, repositorios y servicios
 │   ├── routers/       # Endpoints REST de cada recurso, agrupados en api_router
 │   └── main.py        # Punto de entrada de la aplicación FastAPI
-├── frontend/          # Panel web (HTML, CSS y JavaScript) que FastAPI sirve en /
 ├── .env.example       # Plantilla de variables de entorno (sin credenciales reales)
 ├── .gitignore
 ├── render.yaml        # Despliegue en Render (Blueprint)
@@ -212,8 +211,7 @@ api-design-stockflow/
 | `app/services/` | Implementa las reglas de negocio (409 por duplicados, stock insuficiente, dependencias) sobre los repositorios. |
 | `app/api/` | Define las dependencias que FastAPI inyecta en cada ruta (`SessionDep` y un `<X>ServiceDep` por servicio). |
 | `app/routers/` | Expone los endpoints REST de cada recurso y valida las peticiones con los DTOs. |
-| `app/main.py` | Crea la aplicación, inicializa la base de datos al arrancar, registra las rutas bajo `/api/v1` y sirve el panel web. |
-| `frontend/` | Panel web que usa la API desde el navegador: la página en `/` y sus archivos en `/static`. |
+| `app/main.py` | Crea la aplicación, inicializa la base de datos al arrancar, registra las rutas bajo `/api/v1`, activa CORS y publica la documentación. |
 
 ## ⚙️ Instalación y Ejecución Local
 
@@ -242,16 +240,13 @@ La documentación interactiva queda en `http://localhost:8000/docs` (Scalar); ta
 
 > El archivo `.env` y la carpeta `venv/` nunca se suben al repositorio.
 
-## 🖥️ Panel web
+## 🌐 Consumir la API desde un frontend (CORS)
 
-La API trae un panel para usarla desde el navegador, sin Postman: con el servidor encendido, abrir `http://localhost:8000/` (en Render, la dirección del servicio).
+La API va sola: no sirve páginas web y su raíz (`/`) lleva a la documentación. Un frontend aparte la consume con `fetch` a `https://<dirección de la API>/api/v1/...`.
 
-* **Resumen:** cifras del inventario, productos con bajo stock y últimos movimientos.
-* **Productos:** lista con filtros por categoría, proveedor y bajo stock; crear, editar y borrar; registrar movimientos y ver el historial de cada producto.
-* **Movimientos:** historial con filtros por producto, tipo y fechas; registrar ENTRADA, SALIDA o AJUSTE.
-* **Categorías y Proveedores:** crear, editar, borrar y ver sus productos.
+Como ese frontend corre en otro origen, el navegador solo le deja leer las respuestas si su origen está en la variable `CORS_ORIGINS` (separados por comas, sin barra final). Por defecto se permiten `http://localhost:5500` y `http://127.0.0.1:5500`: un frontend en local con `python -m http.server 5500` o Live Server. Para un frontend publicado, agregar su dirección en `CORS_ORIGINS` (en Render, en **Environment**) y volver a desplegar.
 
-El panel está en `frontend/` (HTML, CSS y JavaScript, sin dependencias ni compilación) y solo usa los endpoints de `/api/v1`: los errores que muestra (409, 404, 422) son los mensajes de la propia API.
+> CORS no protege la API: solo decide qué páginas pueden leer sus respuestas desde un navegador. Cualquier cliente (curl, Postman) sigue pudiendo usarla mientras no tenga autenticación.
 
 ## ☁️ Despliegue en Render
 
@@ -278,11 +273,11 @@ La API se despliega en Render con el archivo `render.yaml` y usa PostgreSQL en N
 - [x] Servicios y endpoints REST con sus validaciones y reglas de negocio.
 - [x] Registro de movimientos y actualización de `stock_actual` en una misma transacción.
 - [x] Despliegue en Render con PostgreSQL en Neon preparado (`render.yaml`).
-- [x] Panel web para usar la API desde el navegador (`frontend/`).
+- [x] CORS configurable (`CORS_ORIGINS`) para consumir la API desde un frontend aparte.
 - [ ] Autenticación con JWT.
 
 ## 🔗 Enlaces
-* **API desplegada:** [https://stockflow-api-33fj.onrender.com](https://stockflow-api-33fj.onrender.com) (panel web en `/` y documentación en `/docs`)
+* **API desplegada:** [https://stockflow-api-33fj.onrender.com](https://stockflow-api-33fj.onrender.com) (la raíz lleva a la documentación en `/docs`)
 * **Repositorio GitHub:** [https://github.com/Luis10469/api-design-stockflow](https://github.com/Luis10469/api-design-stockflow)
 * **Video de Presentación:** (https://drive.google.com/file/d/1pT_Vcr7h4VDcQwpeAxLJ-yydPRAAEl5Y/view?usp=sharing)
 

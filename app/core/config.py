@@ -25,6 +25,15 @@ class Settings(BaseSettings):
 
     ECHO_SQL: bool = False
 
+    # Orígenes que pueden consumir la API desde el navegador (CORS), separados por comas.
+    # Por defecto, un frontend en local en el puerto 5500 (python -m http.server o Live Server).
+    CORS_ORIGINS: str = "http://localhost:5500,http://127.0.0.1:5500"
+
+    @property
+    def CORS_ORIGINS_LIST(self) -> list[str]:
+        """CORS_ORIGINS como lista, sin espacios ni barra final (el navegador envía el origen sin barra)."""
+        return [origen.strip().rstrip("/") for origen in self.CORS_ORIGINS.split(",") if origen.strip()]
+
     @property
     def DATABASE_URL(self) -> str:
         """Retorna la URL asíncrona adecuada según DB_TYPE adaptando la cadena de Neon."""
