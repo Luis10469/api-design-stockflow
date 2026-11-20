@@ -9,8 +9,8 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from fastapi import Depends, FastAPI, HTTPException
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from scalar_fastapi import get_scalar_api_reference
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -852,6 +852,15 @@ app = FastAPI(
     docs_url="/swagger",  # Swagger UI pasa a /swagger: /docs muestra Scalar (más abajo)
 )
 
+# CORS: el frontend se sirve aparte, desde otro origen; el navegador solo le deja leer las respuestas
+# si ese origen está en CORS_ORIGINS. Métodos y encabezado son los que usan las rutas de /api/v1.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS_LIST,
+    allow_methods=["GET", "POST", "PATCH", "DELETE"],
+    allow_headers=["Content-Type"],
+)
+
 # T-36: Incluir el router central con el prefijo /api/v1
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
@@ -865,16 +874,10 @@ async def health_check() -> dict[str, str]:
     return {"status": "ok"}
 
 
-# Panel web (carpeta frontend/): la página en "/" y sus archivos en "/static".
-# Así la API y el panel salen en la misma dirección, en local y en Render.
-# No se monta en "/" para no tapar la redirección de las rutas sin barra final.
-FRONTEND_DIR = ROOT_DIR / "frontend"
-app.mount("/static", StaticFiles(directory=FRONTEND_DIR / "static"), name="static")
-
-
+# La API va sola (el panel web es un frontend aparte): la raíz lleva a la documentación.
 @app.get("/", include_in_schema=False)
-async def panel_web() -> FileResponse:
-    return FileResponse(FRONTEND_DIR / "index.html")
+async def raiz() -> RedirectResponse:
+    return RedirectResponse(url="/docs")
 
 
 # Documentación interactiva con Scalar: lee el mismo /openapi.json que Swagger (/swagger) y ReDoc (/redoc).
@@ -885,7 +888,6 @@ async def documentacion_scalar():
         openapi_url=app.openapi_url,
         title=f"{settings.PROJECT_NAME} · Documentación",
         scalar_js_url="https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.77.0",
-        scalar_favicon_url="/static/icono.svg",
         telemetry=False,
     )
 
