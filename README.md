@@ -196,6 +196,7 @@ api-design-stockflow/
 │   ├── api/           # Dependencias inyectables (deps.py): sesión, repositorios y servicios
 │   ├── routers/       # Endpoints REST de cada recurso, agrupados en api_router
 │   └── main.py        # Punto de entrada de la aplicación FastAPI
+├── frontend/          # Panel web (HTML, CSS y JavaScript) que FastAPI sirve en /
 ├── .env.example       # Plantilla de variables de entorno (sin credenciales reales)
 ├── .gitignore
 ├── render.yaml        # Despliegue en Render (Blueprint)
@@ -211,7 +212,8 @@ api-design-stockflow/
 | `app/services/` | Implementa las reglas de negocio (409 por duplicados, stock insuficiente, dependencias) sobre los repositorios. |
 | `app/api/` | Define las dependencias que FastAPI inyecta en cada ruta (`SessionDep` y un `<X>ServiceDep` por servicio). |
 | `app/routers/` | Expone los endpoints REST de cada recurso y valida las peticiones con los DTOs. |
-| `app/main.py` | Crea la aplicación, inicializa la base de datos al arrancar y registra las rutas bajo `/api/v1`. |
+| `app/main.py` | Crea la aplicación, inicializa la base de datos al arrancar, registra las rutas bajo `/api/v1` y sirve el panel web. |
+| `frontend/` | Panel web que usa la API desde el navegador: la página en `/` y sus archivos en `/static`. |
 
 ## ⚙️ Instalación y Ejecución Local
 
@@ -240,6 +242,17 @@ La documentación interactiva queda en `http://localhost:8000/docs`.
 
 > El archivo `.env` y la carpeta `venv/` nunca se suben al repositorio.
 
+## 🖥️ Panel web
+
+La API trae un panel para usarla desde el navegador, sin Postman: con el servidor encendido, abrir `http://localhost:8000/` (en Render, la dirección del servicio).
+
+* **Resumen:** cifras del inventario, productos con bajo stock y últimos movimientos.
+* **Productos:** lista con filtros por categoría, proveedor y bajo stock; crear, editar y borrar; registrar movimientos y ver el historial de cada producto.
+* **Movimientos:** historial con filtros por producto, tipo y fechas; registrar ENTRADA, SALIDA o AJUSTE.
+* **Categorías y Proveedores:** crear, editar, borrar y ver sus productos.
+
+El panel está en `frontend/` (HTML, CSS y JavaScript, sin dependencias ni compilación) y solo usa los endpoints de `/api/v1`: los errores que muestra (409, 404, 422) son los mensajes de la propia API.
+
 ## ☁️ Despliegue en Render
 
 La API se despliega en Render con el archivo `render.yaml` y usa PostgreSQL en Neon.
@@ -265,6 +278,7 @@ La API se despliega en Render con el archivo `render.yaml` y usa PostgreSQL en N
 - [x] Servicios y endpoints REST con sus validaciones y reglas de negocio.
 - [x] Registro de movimientos y actualización de `stock_actual` en una misma transacción.
 - [x] Despliegue en Render con PostgreSQL en Neon preparado (`render.yaml`).
+- [x] Panel web para usar la API desde el navegador (`frontend/`).
 - [ ] Autenticación con JWT.
 
 ## 🔗 Enlaces

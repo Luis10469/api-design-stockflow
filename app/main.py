@@ -9,6 +9,8 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -859,6 +861,18 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 )
 async def health_check() -> dict[str, str]:
     return {"status": "ok"}
+
+
+# Panel web (carpeta frontend/): la página en "/" y sus archivos en "/static".
+# Así la API y el panel salen en la misma dirección, en local y en Render.
+# No se monta en "/" para no tapar la redirección de las rutas sin barra final.
+FRONTEND_DIR = ROOT_DIR / "frontend"
+app.mount("/static", StaticFiles(directory=FRONTEND_DIR / "static"), name="static")
+
+
+@app.get("/", include_in_schema=False)
+async def panel_web() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "index.html")
 
 
 @app.post(
