@@ -11,6 +11,7 @@ if str(ROOT_DIR) not in sys.path:
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from scalar_fastapi import get_scalar_api_reference
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -848,6 +849,7 @@ app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
     lifespan=lifespan,
+    docs_url="/swagger",  # Swagger UI pasa a /swagger: /docs muestra Scalar (más abajo)
 )
 
 # T-36: Incluir el router central con el prefijo /api/v1
@@ -873,6 +875,19 @@ app.mount("/static", StaticFiles(directory=FRONTEND_DIR / "static"), name="stati
 @app.get("/", include_in_schema=False)
 async def panel_web() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "index.html")
+
+
+# Documentación interactiva con Scalar: lee el mismo /openapi.json que Swagger (/swagger) y ReDoc (/redoc).
+# El visor se fija en una versión para que no cambie solo; la telemetría de Scalar va apagada.
+@app.get("/docs", include_in_schema=False)
+async def documentacion_scalar():
+    return get_scalar_api_reference(
+        openapi_url=app.openapi_url,
+        title=f"{settings.PROJECT_NAME} · Documentación",
+        scalar_js_url="https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.77.0",
+        scalar_favicon_url="/static/icono.svg",
+        telemetry=False,
+    )
 
 
 @app.post(

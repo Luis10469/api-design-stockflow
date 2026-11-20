@@ -10,3 +10,6 @@ email-validator==2.3.0
 
 # Cliente HTTP usado por la prueba de la Capa 5 (T-37) en app/main.py
 httpx==0.28.1
+
+# Documentación interactiva con Scalar en /docs
+scalar-fastapi==1.9.1
