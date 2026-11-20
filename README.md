@@ -178,7 +178,7 @@ Base URL: `http://localhost:8000/api/v1` (servidor local con Uvicorn; el prefijo
 | Base de datos | SQLite en local (`aiosqlite`) y PostgreSQL en Neon (`asyncpg`) |
 | Servidor | Uvicorn |
 | Configuración | `pydantic-settings` con archivo `.env` |
-| Documentación de la API | OpenAPI (Swagger UI en `/docs`) |
+| Documentación de la API | OpenAPI: Scalar en `/docs`, Swagger UI en `/swagger` y ReDoc en `/redoc` |
 | Autenticación | JWT (fase posterior) |
 
 ## 🏛️ Arquitectura del Proyecto
@@ -238,7 +238,7 @@ Copy-Item .env.example .env        # Windows (PowerShell)
 uvicorn app.main:app --reload
 ```
 
-La documentación interactiva queda en `http://localhost:8000/docs`.
+La documentación interactiva queda en `http://localhost:8000/docs` (Scalar); también están Swagger UI en `/swagger` y ReDoc en `/redoc`.
 
 > El archivo `.env` y la carpeta `venv/` nunca se suben al repositorio.
 
@@ -261,7 +261,7 @@ La API se despliega en Render con el archivo `render.yaml` y usa PostgreSQL en N
 2. En Render, **New > Blueprint** y elegir este repositorio. Render crea el servicio `stockflow-api` y pide `POSTGRES_URL`: pegar la cadena de Neon tal como la da.
 3. Comprobar `https://<dirección de Render>/health` (responde `{"status":"ok"}`) y `/docs`.
 
-> Cada vez que algo se une a `main`, Render vuelve a desplegar. En el plan gratis el servicio se duerme tras 15 minutos sin uso y la primera petición tarda cerca de un minuto. Los endpoints `/test-repositories`, `/test-services` y `/test-routers` escriben datos de prueba en la base: no se llaman en producción.
+> El servicio se conectó con la URL pública del repositorio, así que Render no despliega solo: después de unir algo a `main` se usa **Manual Deploy > Deploy latest commit**. En el plan gratis el servicio se duerme tras 15 minutos sin uso y la primera petición tarda cerca de un minuto. Los endpoints `/test-repositories`, `/test-services` y `/test-routers` escriben datos de prueba en la base: no se llaman en producción.
 
 ## 🌿 Flujo de Trabajo con Git
 
@@ -282,6 +282,7 @@ La API se despliega en Render con el archivo `render.yaml` y usa PostgreSQL en N
 - [ ] Autenticación con JWT.
 
 ## 🔗 Enlaces
+* **API desplegada:** [https://stockflow-api-33fj.onrender.com](https://stockflow-api-33fj.onrender.com) (panel web en `/` y documentación en `/docs`)
 * **Repositorio GitHub:** [https://github.com/Luis10469/api-design-stockflow](https://github.com/Luis10469/api-design-stockflow)
 * **Video de Presentación:** (https://drive.google.com/file/d/1pT_Vcr7h4VDcQwpeAxLJ-yydPRAAEl5Y/view?usp=sharing)
 
