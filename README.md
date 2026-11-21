@@ -278,6 +278,7 @@ La API se despliega en Render con el archivo `render.yaml` y usa PostgreSQL en N
 
 ## 🔗 Enlaces
 * **API desplegada:** [https://stockflow-api-33fj.onrender.com](https://stockflow-api-33fj.onrender.com) (la raíz lleva a la documentación en `/docs`)
+* **Panel web (frontend aparte):** [https://luis10469.github.io/stockflow-front/](https://luis10469.github.io/stockflow-front/) · repositorio [Luis10469/stockflow-front](https://github.com/Luis10469/stockflow-front)
 * **Repositorio GitHub:** [https://github.com/Luis10469/api-design-stockflow](https://github.com/Luis10469/api-design-stockflow)
 * **Video de Presentación:** (https://drive.google.com/file/d/1pT_Vcr7h4VDcQwpeAxLJ-yydPRAAEl5Y/view?usp=sharing)
 
