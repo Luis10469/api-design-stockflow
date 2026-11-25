@@ -6,7 +6,7 @@ if TYPE_CHECKING:
     from app.models.producto import Producto
 
 class CategoriaBase(SQLModel):
-    nombre: str = Field(max_length=100, unique=True, index=True)
+    nombre: str = Field(min_length=1, max_length=100, unique=True, index=True)
     descripcion: Optional[str] = Field(default=None, max_length=255)
 
 class Categoria(CategoriaBase, table=True):
@@ -27,7 +27,7 @@ class CategoriaCreate(CategoriaBase):
     pass
 
 class CategoriaUpdate(SQLModel):
-    nombre: str | None = Field(default=None, max_length=100)
+    nombre: str | None = Field(default=None, min_length=1, max_length=100)
     descripcion: str | None = Field(default=None, max_length=255)
 
 class CategoriaPublic(CategoriaBase):
